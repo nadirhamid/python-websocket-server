@@ -120,7 +120,7 @@ class WebsocketServer(ThreadingMixIn, TCPServer, API):
 
     id_counter = 0
 
-    def __init__(self, port, host='127.0.0.1', loglevel=logging.WARNING):
+    def __init__(self, port, host='127.0.0.1', loglevel=logging.WARNING, path=""):
         logger.setLevel(loglevel)
         self.port = port
 
@@ -140,9 +140,8 @@ class WebsocketServer(ThreadingMixIn, TCPServer, API):
             self._unicast_(client, msg)
 
     def _new_client_(self, handler):
-        if not handler.path in CLIENTS:
+        if not handler.path in CLIENTS.keys():
            CLIENTS[ handler.path ] = []
-
         self.id_counter += 1
         client = {
             'id': self.id_counter,

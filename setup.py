@@ -9,6 +9,7 @@ setup(
     author='Johan Hanssen Seferidis',
     author_email='manossef@gmail.com',
     install_requires=[
+        'http-parser==0.8.3'
     ],
     description='A simple fully working websocket-server in Python with no external dependencies',
     platforms='any',
