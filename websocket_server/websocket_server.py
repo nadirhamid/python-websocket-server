@@ -46,7 +46,6 @@ OPCODE_BINARY       = 0x2
 OPCODE_CLOSE_CONN   = 0x8
 OPCODE_PING         = 0x9
 OPCODE_PONG         = 0xA
-CLIENTS = {}
 
 # -------------------------------- API ---------------------------------
 
@@ -117,7 +116,7 @@ class WebsocketServer(ThreadingMixIn, TCPServer, API):
 
     allow_reuse_address = True
     daemon_threads = True  # comment to keep threads alive until finished
-
+    clients = []
     id_counter = 0
 
     def __init__(self, port, host='127.0.0.1', loglevel=logging.WARNING):
@@ -136,41 +135,42 @@ class WebsocketServer(ThreadingMixIn, TCPServer, API):
         pass
 
     def _do_multicast(self, path, msg):
-        for client in CLIENTS[ path ]:
-            self._unicast_(client, msg)
+        for client in self.clients:
+            if client['handler'].path==path:
+               self._unicast_(client, msg)
 
     def _new_client_(self, handler):
-        if not handler.path in CLIENTS:
-           CLIENTS[ handler.path ] = []
-
         self.id_counter += 1
         client = {
             'id': self.id_counter,
             'handler': handler,
             'address': handler.client_address
         }
-        CLIENTS[handler.path].append(client)
+        self.clients.append(client)
         self.new_client(client,self)
 
     def _client_left_(self, handler):
         client = self.handler_to_client(handler)
         self.client_left(client,self)
-        if client in CLIENTS[handler.path]:
-            CLIENTS[handler.path].remove(client)
+        if client in self.clients:
+            self.clients.remove(client)
 
     def _unicast_(self, to_client, msg):
         to_client['handler'].send_message(msg)
 
     def _multicast_(self, msg):
-        paths = CLIENTS.keys()
+        def map_fn(client):
+            return client['handler'].path
+
+        paths = list(set(map(map_fn, self.clients)))
         for path in paths:
-            self._do_multicast( path, msg )
+            self._do_multicast(path, msg)
 
     def _multicast_path_(self, origin_client, msg):
         self._do_multicast(origin_client['handler'].path, msg)
 
     def handler_to_client(self, handler):
-        for client in CLIENTS[handler.path]:
+        for client in self.clients:
             if client['handler'] == handler:
                 return client
 
